@@ -203,15 +203,6 @@ public enum App: String {
             return "\(self.urlScheme)directions?\(parameters.urlParameters)"
         }
     }
-    
-    var isInstalled: Bool
-    {
-        guard self != .appleMaps else { return true } // FIXME: See issue #3
-        
-        guard let url = URL(string: urlScheme) else { return false }
-        return UIApplication.shared.canOpenURL(url)
-    }
-
     // swiftlint:enable function_body_length
     // swiftlint:enable cyclomatic_complexity
 }
