@@ -75,22 +75,22 @@ public enum Karte {
             return
         }
 
-        guard let queryString = app.queryString(origin: origin,
+        guard let appUrl = app.url(origin: origin,
                                                 destination: destination,
                                                 mode: mode)
         else {
             throw KarteError.unsupportedMode
         }
 
-        guard let url = URL(string: queryString) else {
-            assertionFailure("Failed to create URL for \(app)")
-            return
-        }
+//        guard let url = URL(string: queryString) else {
+//            assertionFailure("Failed to create URL for \(app)")
+//            return
+//        }
 
         if #available(iOS 10.0, *) {
-            UIApplication.shared.open(url, completionHandler: nil)
+            UIApplication.shared.open(appUrl, completionHandler: nil)
         } else {
-            UIApplication.shared.openURL(url)
+            UIApplication.shared.openURL(appUrl)
         }
     }
 

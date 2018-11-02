@@ -6,6 +6,8 @@
 //  Copyright © 2017 Karte. All rights reserved.
 //
 
+import Foundation
+
 public enum App: String {
     case appleMaps
     case googleMaps // https://developers.google.com/maps/documentation/ios/urlscheme
@@ -18,6 +20,7 @@ public enum App: String {
     case dbnavigator
     case yandex
     case moovit
+    case olacabs // https://developers.olacabs.com/docs/deep-linking
 
     static var all: [App] {
         return [
@@ -31,7 +34,8 @@ public enum App: String {
             .waze,
             .dbnavigator,
             .yandex,
-            .moovit
+            .moovit,
+            .olacabs
         ]
     }
 
@@ -48,6 +52,7 @@ public enum App: String {
         case .dbnavigator: return "dbnavigator://"
         case .yandex: return "yandexnavi://"
         case .moovit: return "moovit://"
+        case .olacabs: return "olacabs://"
         }
     }
 
@@ -64,6 +69,7 @@ public enum App: String {
         case .dbnavigator: return "DB Navigator"
         case .yandex: return "Yandex.Navi"
         case .moovit: return "Moovit"
+        case.olacabs: return "Ola"
         }
     }
 
@@ -81,7 +87,7 @@ public enum App: String {
             return true
         case .citymapper, .transit:
             return mode == .transit
-        case .lyft, .uber:
+        case .lyft, .uber, .olacabs:
             return mode == .taxi
         case .navigon:
             return mode == .driving || mode == .walking
@@ -100,92 +106,117 @@ public enum App: String {
     // swiftlint:disable function_body_length
     /// Build a query string for this app using the parameters. Returns nil if a mode is specified,
     /// but not supported by this app.
-    func queryString(origin: LocationRepresentable?,
+    func url(origin: LocationRepresentable?,
                      destination: LocationRepresentable,
-                     mode: Mode?) -> String? {
+                     mode: Mode?) -> URL? {
         guard self.supports(mode: mode) else {
             // if a mode is present, validate if the app supports it, otherwise we don't care
             return nil
         }
 
-        var parameters = [String: String]()
+        var urlComponents = URLComponents()
+        
+        //var parameters = [String: String]()
+
+        urlComponents.scheme = self.urlScheme
+        
+        let oLat = origin?.latitude == nil ? "" : String(describing: origin?.latitude)
+        let oLong = origin?.longitude == nil ? "" : String(describing: origin?.longitude)
+        let dLat = String(describing: destination.latitude)
+        let dLong = String(describing: destination.longitude)
 
         switch self {
         case .appleMaps:
             // Apple Maps gets special handling, since it uses System APIs
             return nil
         case .googleMaps:
-            parameters.set("saddr", origin?.coordString)
-            parameters.set("daddr", destination.coordString)
+            urlComponents.path = "maps"
+            urlComponents.queryItems?.append(
+                URLQueryItem(name: "saddr", value: origin?.coordString))
+            urlComponents.queryItems?.append(URLQueryItem(name: "saddr", value: origin?.coordString))
+            urlComponents.queryItems?.append(URLQueryItem(name: "daddr", value: destination.coordString))
 
             let modeIdentifier = mode?.identifier(for: self) as? String
-            parameters.set("directionsmode", modeIdentifier)
-            return "\(self.urlScheme)maps?\(parameters.urlParameters)"
+            urlComponents.queryItems?.append(URLQueryItem(name: "directionsmode", value: modeIdentifier))
         case .citymapper:
-            parameters.set("endcoord", destination.coordString)
-            parameters.set("startcoord", origin?.coordString)
-            parameters.set("startname", origin?.name)
-            parameters.set("startaddress", origin?.address)
-            parameters.set("endname", destination.name)
-            parameters.set("endaddress", destination.address)
-            return "\(self.urlScheme)directions?\(parameters.urlParameters)"
+            urlComponents.path = "directions"
+            urlComponents.queryItems?.append(URLQueryItem(name: "endcoord", value: destination.coordString))
+            urlComponents.queryItems?.append(URLQueryItem(name: "startcoord", value: origin?.coordString))
+            urlComponents.queryItems?.append(URLQueryItem(name: "startname", value: origin?.name))
+            urlComponents.queryItems?.append(URLQueryItem(name: "startaddress", value: origin?.address))
+            urlComponents.queryItems?.append(URLQueryItem(name: "endname", value: destination.name))
+            urlComponents.queryItems?.append(URLQueryItem(name: "endaddress", value: destination.address))
         case .transit:
-            parameters.set("from", origin?.coordString)
-            parameters.set("to", destination.coordString)
-            return "\(self.urlScheme)directions?\(parameters.urlParameters)"
+            urlComponents.path = "directions"
+            urlComponents.queryItems?.append(URLQueryItem(name: "from", value: origin?.coordString))
+            urlComponents.queryItems?.append(URLQueryItem(name: "to", value: destination.coordString))
         case .lyft:
-            parameters.set("pickup[latitude]", origin?.latitude)
-            parameters.set("pickup[longitude]", origin?.longitude)
-            parameters.set("destination[latitude]", destination.latitude)
-            parameters.set("destination[longitude]", destination.longitude)
-            return "\(self.urlScheme)ridetype?id=lyft&\(parameters.urlParameters)"
+            urlComponents.path = "ridetype"
+            urlComponents.queryItems?.append(URLQueryItem(name: "id", value: "lyft"))
+
+            urlComponents.queryItems?.append(URLQueryItem(name: "pickup[latitude]", value: oLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "pickup[longitude]", value: String(describing: origin?.longitude)))
+            urlComponents.queryItems?.append(URLQueryItem(name: "destination[latitude]", value: String(describing: destination.latitude)))
+            urlComponents.queryItems?.append(URLQueryItem(name: "destination[longitude]", value: String(describing: destination.longitude)))
+        case .olacabs:
+            urlComponents.path = "app/launch"
+            urlComponents.queryItems?.append(URLQueryItem(name: "lat", value: oLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "lng", value: oLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "drop_lat", value: dLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "drop_long", value: dLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "drop_address", value: destination.address))
+            urlComponents.queryItems?.append(URLQueryItem(name: "drop_name", value: destination.name))
         case .uber:
-            parameters.set("action", "setPickup")
-            if let origin = origin {
-                parameters.set("pickup[latitude]", origin.latitude)
-                parameters.set("pickup[longitude]", origin.longitude)
+            
+            urlComponents.queryItems?.append(URLQueryItem(name: "action", value: "setPickup"))
+            if origin != nil {
+                urlComponents.queryItems?.append(URLQueryItem(name: "pickup[latitude]", value: oLat))
+                urlComponents.queryItems?.append(URLQueryItem(name: "pickup[longitude]", value: oLong))
             } else {
-                parameters.set("pickup", "my_location")
+                urlComponents.queryItems?.append(URLQueryItem(name: "pickup", value: "my_location"))
             }
-            parameters.set("dropoff[latitude]", destination.latitude)
-            parameters.set("dropoff[longitude]", destination.longitude)
-            parameters.set("dropoff[nickname]", destination.name)
-            return "\(self.urlScheme)?\(parameters.urlParameters)"
+            urlComponents.queryItems?.append(URLQueryItem(name: "dropoff[latitude]", value: dLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "dropoff[longitude]", value: dLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "dropoff[nickname]", value: destination.name))
         case .navigon:
             // Docs are unclear about the name being omitted
             let name = destination.name ?? "Destination"
             // swiftlint:disable:next line_length
-            return "\(self.urlScheme)coordinate/\(name.urlQuery ?? "")/\(destination.longitude)/\(destination.latitude)"
+            urlComponents.path = "coordinate/\(name.urlQuery ?? "")/\(destination.longitude)/\(destination.latitude)"
         case .waze:
             // swiftlint:disable:next line_length
-            return "\(self.urlScheme)?ll=\(destination.latitude),\(destination.longitude)&navigate=yes"
+            urlComponents.queryItems?.append(URLQueryItem(name: "ll", value: "\(destination.latitude),\(destination.longitude)"))
+            urlComponents.queryItems?.append(URLQueryItem(name: "navigate", value: "yes"))
         case .dbnavigator:
+            urlComponents.path = "query"
             if let origin = origin {
-                parameters.set("SKOORD", 1)
-                parameters.set("SNAME", origin.name)
-                parameters.set("SY", Int(origin.latitude * 1_000_000))
-                parameters.set("SX", Int(origin.longitude * 1_000_000))
+                urlComponents.queryItems?.append(URLQueryItem(name: "SKOORD", value: "1"))
+                urlComponents.queryItems?.append(URLQueryItem(name: "SNAME", value: origin.name))
+                urlComponents.queryItems?.append(URLQueryItem(name: "SY", value: "\(Int(origin.latitude * 1_000_000))"))
+                urlComponents.queryItems?.append(URLQueryItem(name: "SX", value: "\(Int(origin.longitude * 1_000_000))"))
             }
-            parameters.set("ZKOORD", 1)
-            parameters.set("ZNAME", destination.name)
-            parameters.set("ZY", Int(destination.latitude * 1_000_000))
-            parameters.set("ZX", Int(destination.longitude * 1_000_000))
-            return "\(self.urlScheme)query?\(parameters.urlParameters)&start"
+            urlComponents.queryItems?.append(URLQueryItem(name: "ZKOORD", value: "1"))
+            urlComponents.queryItems?.append(URLQueryItem(name: "ZNAME", value: destination.name))
+            urlComponents.queryItems?.append(URLQueryItem(name: "ZY", value: "\(Int(destination.latitude * 1_000_000))"))
+            urlComponents.queryItems?.append(URLQueryItem(name: "ZX", value: "\(Int(destination.longitude * 1_000_000))"))
         case .yandex:
-            parameters.set("lat_from", origin?.latitude)
-            parameters.set("lon_from", origin?.longitude)
-            parameters.set("lat_to", destination.latitude)
-            parameters.set("lon_to", destination.longitude)
-            return "\(self.urlScheme)build_route_on_map?\(parameters.urlParameters)"
+            urlComponents.path = "build_route_on_map"
+            urlComponents.queryItems?.append(URLQueryItem(name: "lat_from", value: oLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "lon_from", value: oLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "lat_to", value: dLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "lon_to", value: dLong))
         case .moovit:
-            parameters.set("origin_lat", origin?.latitude)
-            parameters.set("origin_lon", origin?.longitude)
-            parameters.set("orig_name", origin?.name)
-            parameters.set("dest_lat", destination.latitude)
-            parameters.set("dest_lon", destination.longitude)
-            parameters.set("dest_name", destination.name)
-            return "\(self.urlScheme)directions?\(parameters.urlParameters)"
+            urlComponents.path = "directions"
+
+            urlComponents.queryItems?.append(URLQueryItem(name: "origin_lat", value: oLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "origin_lon", value: oLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "orig_name", value: origin?.name))
+            urlComponents.queryItems?.append(URLQueryItem(name: "dest_lat", value: dLat))
+            urlComponents.queryItems?.append(URLQueryItem(name: "dest_lon", value: dLong))
+            urlComponents.queryItems?.append(URLQueryItem(name: "dest_name", value: destination.name))
         }
+        
+        return urlComponents.url
     }
     // swiftlint:enable function_body_length
     // swiftlint:enable cyclomatic_complexity
