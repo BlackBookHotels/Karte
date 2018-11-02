@@ -22,7 +22,6 @@ public enum App: String {
     case moovit
     case olacabs // https://developers.olacabs.com/docs/deep-linking
 
-
     static var all: [App] {
         return [
             .appleMaps,
@@ -57,7 +56,7 @@ public enum App: String {
         }
     }
 
-    public var name: String {
+    var name: String {
         switch self {
         case .appleMaps: return "Apple Maps"
         case .googleMaps: return "Google Maps"
@@ -70,7 +69,7 @@ public enum App: String {
         case .dbnavigator: return "DB Navigator"
         case .yandex: return "Yandex.Navi"
         case .moovit: return "Moovit"
-        case .olacabs: return "Olas"
+        case.olacabs: return "Ola"
         }
     }
 
@@ -102,7 +101,8 @@ public enum App: String {
             return true
         }
     }
-
+    
+    
     // swiftlint:disable cyclomatic_complexity
     // swiftlint:disable function_body_length
     /// Build a query string for this app using the parameters. Returns nil if a mode is specified,
@@ -110,13 +110,13 @@ public enum App: String {
     func queryString(origin: LocationRepresentable?,
                      destination: LocationRepresentable,
                      mode: Mode?) -> String? {
-        guard self.supports(mode: mode) else {
+        guard supports(mode: mode) else {
             // if a mode is present, validate if the app supports it, otherwise we don't care
             return nil
         }
-
+        
         var parameters = [String: String]()
-
+        
         switch self {
         case .appleMaps:
             // Apple Maps gets special handling, since it uses System APIs
@@ -124,7 +124,7 @@ public enum App: String {
         case .googleMaps:
             parameters.set("saddr", origin?.coordString)
             parameters.set("daddr", destination.coordString)
-
+            
             let modeIdentifier = mode?.identifier(for: self) as? String
             parameters.set("directionsmode", modeIdentifier)
             return "\(self.urlScheme)maps?\(parameters.urlParameters)"
@@ -165,7 +165,7 @@ public enum App: String {
             parameters.set("drop_long", destination.longitude)
             parameters.set("drop_address", destination.address)
             parameters.set("drop_name", destination.name)
-
+            
             return "\(self.urlScheme)app/launch?\(parameters.urlParameters)"
         case .navigon:
             // Docs are unclear about the name being omitted
@@ -211,6 +211,7 @@ public enum App: String {
         guard let url = URL(string: urlScheme) else { return false }
         return UIApplication.shared.canOpenURL(url)
     }
+
     // swiftlint:enable function_body_length
     // swiftlint:enable cyclomatic_complexity
 }
