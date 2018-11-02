@@ -69,7 +69,7 @@ public enum App: String {
         case .dbnavigator: return "DB Navigator"
         case .yandex: return "Yandex.Navi"
         case .moovit: return "Moovit"
-        case.olacabs: return "Ola"
+        case .olacabs: return "Ola"
         }
     }
 
