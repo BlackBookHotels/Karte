@@ -42,17 +42,17 @@ public enum App: String {
     var urlScheme: String {
         switch self {
         case .appleMaps: return "" // Uses System APIs, so this is just a placeholder
-        case .googleMaps: return "comgooglemaps://"
-        case .citymapper: return "citymapper://"
-        case .transit: return "transit://"
-        case .lyft: return "lyft://"
-        case .uber: return "uber://"
-        case .navigon: return "navigon://"
-        case .waze: return "waze://"
-        case .dbnavigator: return "dbnavigator://"
-        case .yandex: return "yandexnavi://"
-        case .moovit: return "moovit://"
-        case .olacabs: return "olacabs://"
+        case .googleMaps: return "comgooglemaps"
+        case .citymapper: return "citymapper"
+        case .transit: return "transit"
+        case .lyft: return "lyft"
+        case .uber: return "uber"
+        case .navigon: return "navigon"
+        case .waze: return "waze"
+        case .dbnavigator: return "dbnavigator"
+        case .yandex: return "yandexnavi"
+        case .moovit: return "moovit"
+        case .olacabs: return "olacabs"
         }
     }
 
