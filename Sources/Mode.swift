@@ -47,7 +47,7 @@ public enum Mode: String {
             }
         case .citymapper, .transit:
             return nil
-        case .lyft, .uber:
+        case .lyft, .uber, .olacabs:
             return nil
         case .navigon:
             return nil

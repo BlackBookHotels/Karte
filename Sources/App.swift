@@ -1,10 +1,12 @@
 //
-//  MapsApp.swift
+//  App.swift
 //  Karte
 //
 //  Created by Kilian Költzsch on 13.04.17.
 //  Copyright © 2017 Karte. All rights reserved.
 //
+
+import UIKit
 
 public enum App: String {
     case appleMaps
@@ -18,6 +20,8 @@ public enum App: String {
     case dbnavigator
     case yandex
     case moovit
+    case olacabs // https://developers.olacabs.com/docs/deep-linking
+
 
     static var all: [App] {
         return [
@@ -31,7 +35,8 @@ public enum App: String {
             .waze,
             .dbnavigator,
             .yandex,
-            .moovit
+            .moovit,
+            .olacabs
         ]
     }
 
@@ -48,6 +53,7 @@ public enum App: String {
         case .dbnavigator: return "dbnavigator://"
         case .yandex: return "yandexnavi://"
         case .moovit: return "moovit://"
+        case .olacabs: return "olacabs://"
         }
     }
 
@@ -64,6 +70,7 @@ public enum App: String {
         case .dbnavigator: return "DB Navigator"
         case .yandex: return "Yandex.Navi"
         case .moovit: return "Moovit"
+        case .olacabs: return "Olas"
         }
     }
 
@@ -81,7 +88,7 @@ public enum App: String {
             return true
         case .citymapper, .transit:
             return mode == .transit
-        case .lyft, .uber:
+        case .lyft, .uber, .olacabs:
             return mode == .taxi
         case .navigon:
             return mode == .driving || mode == .walking
@@ -151,6 +158,15 @@ public enum App: String {
             parameters.set("dropoff[longitude]", destination.longitude)
             parameters.set("dropoff[nickname]", destination.name)
             return "\(self.urlScheme)?\(parameters.urlParameters)"
+        case .olacabs:
+            parameters.set("lat", origin?.latitude)
+            parameters.set("lng", origin?.longitude)
+            parameters.set("drop_lat", destination.latitude)
+            parameters.set("drop_long", destination.longitude)
+            parameters.set("drop_address", destination.address)
+            parameters.set("drop_name", destination.name)
+
+            return "\(self.urlScheme)app/launch?\(parameters.urlParameters)"
         case .navigon:
             // Docs are unclear about the name being omitted
             let name = destination.name ?? "Destination"
@@ -186,6 +202,14 @@ public enum App: String {
             parameters.set("dest_name", destination.name)
             return "\(self.urlScheme)directions?\(parameters.urlParameters)"
         }
+    }
+    
+    var isInstalled: Bool
+    {
+        guard self != .appleMaps else { return true } // FIXME: See issue #3
+        
+        guard let url = URL(string: urlScheme) else { return false }
+        return UIApplication.shared.canOpenURL(url)
     }
     // swiftlint:enable function_body_length
     // swiftlint:enable cyclomatic_complexity
