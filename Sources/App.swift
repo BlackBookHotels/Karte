@@ -6,6 +6,7 @@
 //  Copyright © 2017 Karte. All rights reserved.
 //
 
+import UIKit
 import Foundation
 
 public enum App: String {
@@ -218,6 +219,18 @@ public enum App: String {
         
         return urlComponents.url
     }
+    
+    var isInstalled: Bool
+    {
+        guard self != .appleMaps else { return true } // FIXME: See issue #3
+        
+        var urlComponents = URLComponents()
+        urlComponents.scheme = urlScheme
+        
+        guard let url = urlComponents.url else { return false }
+        return UIApplication.shared.canOpenURL(url)
+    }
+    
     // swiftlint:enable function_body_length
     // swiftlint:enable cyclomatic_complexity
 }

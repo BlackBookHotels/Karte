@@ -18,9 +18,7 @@ public enum Karte {
     ///            included in your app's Info.plist.
     /// Please see Karte's README for additional details.
     public static func isInstalled(_ app: App) -> Bool {
-        guard app != .appleMaps else { return true } // FIXME: See issue #3
-        guard let url = URL(string: app.urlScheme) else { return false }
-        return UIApplication.shared.canOpenURL(url)
+        return app.isInstalled
     }
 
     /// Try to launch a navigation app with the given parameters.
