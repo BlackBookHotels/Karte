@@ -22,7 +22,7 @@ public enum App: String {
     case moovit
     case olacabs // https://developers.olacabs.com/docs/deep-linking
 
-    static var all: [App] {
+    public static var all: [App] {
         return [
             .appleMaps,
             .googleMaps,
